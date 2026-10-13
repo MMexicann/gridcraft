@@ -1437,6 +1437,7 @@ fn add_cf(s: &mut Session, p: &Json) -> Result<Json> {
         "iconSet" => CfRule::IconSet {
             set: g("set").unwrap_or_else(|| "3TrafficLights1".into()),
             thresholds: vec![],
+            greater_than: vec![],
             reverse: rule.get("reverse").and_then(Json::as_bool).unwrap_or(false),
             show_value: true,
         },

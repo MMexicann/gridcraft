@@ -729,14 +729,15 @@ fn write_cell(
     }
 }
 
-fn cfvo_xml(v: &CfValueKind) -> String {
+fn cfvo_xml(v: &CfValueKind, greater_than: bool) -> String {
+    let comparison = if greater_than { " gte=\"0\"" } else { "" };
     match v {
-        CfValueKind::Min => "<cfvo type=\"min\"/>".into(),
-        CfValueKind::Max => "<cfvo type=\"max\"/>".into(),
-        CfValueKind::Number(n) => format!("<cfvo type=\"num\" val=\"{}\"/>", num(*n)),
-        CfValueKind::Percent(n) => format!("<cfvo type=\"percent\" val=\"{}\"/>", num(*n)),
-        CfValueKind::Percentile(n) => format!("<cfvo type=\"percentile\" val=\"{}\"/>", num(*n)),
-        CfValueKind::Formula(f) => format!("<cfvo type=\"formula\" val=\"{}\"/>", esc_attr(&text_to_file(f))),
+        CfValueKind::Min => format!("<cfvo type=\"min\"{comparison}/>"),
+        CfValueKind::Max => format!("<cfvo type=\"max\"{comparison}/>"),
+        CfValueKind::Number(n) => format!("<cfvo type=\"num\" val=\"{}\"{comparison}/>", num(*n)),
+        CfValueKind::Percent(n) => format!("<cfvo type=\"percent\" val=\"{}\"{comparison}/>", num(*n)),
+        CfValueKind::Percentile(n) => format!("<cfvo type=\"percentile\" val=\"{}\"{comparison}/>", num(*n)),
+        CfValueKind::Formula(f) => format!("<cfvo type=\"formula\" val=\"{}\"{comparison}/>", esc_attr(&text_to_file(f))),
     }
 }
 
@@ -858,7 +859,7 @@ fn cf_rule_xml(cf: &CondFormat, priority: u32, out: &mut Out) -> String {
         CfRule::ColorScale { stops } => {
             let mut b = String::from("<colorScale>");
             for (v, _) in stops {
-                b.push_str(&cfvo_xml(v));
+                b.push_str(&cfvo_xml(v, false));
             }
             for (_, c) in stops {
                 let _ = write!(b, "<color {}/>", color_attrs(c));
@@ -869,12 +870,12 @@ fn cf_rule_xml(cf: &CondFormat, priority: u32, out: &mut Out) -> String {
         CfRule::DataBar { min, max, color, show_value, gradient } => format!(
             "<cfRule type=\"dataBar\" priority=\"{priority}\"{stop}><dataBar{}>{}{}<color {}/></dataBar>{}</cfRule>",
             if *show_value { "" } else { " showValue=\"0\"" },
-            cfvo_xml(min),
-            cfvo_xml(max),
+            cfvo_xml(min, false),
+            cfvo_xml(max, false),
             if *color == Color::Auto { "rgb=\"FF638EC6\"".to_string() } else { color_attrs(color) },
             if *gradient { String::new() } else { solid_bar_ext(priority) }
         ),
-        CfRule::IconSet { set, thresholds, reverse, show_value } => {
+        CfRule::IconSet { set, thresholds, greater_than, reverse, show_value } => {
             let mut b = format!("<iconSet iconSet=\"{}\"", esc_attr(set));
             if *reverse {
                 b.push_str(" reverse=\"1\"");
@@ -891,8 +892,14 @@ fn cf_rule_xml(cf: &CondFormat, priority: u32, out: &mut Out) -> String {
                 n if n + 1 == k => defaults.iter().take(1).chain(thresholds).collect(),
                 _ => defaults.iter().collect(),
             };
-            for t in cfvos {
-                b.push_str(&cfvo_xml(t));
+            for (i, t) in cfvos.into_iter().enumerate() {
+                let original_index = match thresholds.len() {
+                    n if n == k => Some(i),
+                    n if n + 1 == k => i.checked_sub(1),
+                    _ => None,
+                };
+                let strict = original_index.and_then(|i| greater_than.get(i)).copied().unwrap_or(false);
+                b.push_str(&cfvo_xml(t, strict));
             }
             b.push_str("</iconSet>");
             format!("<cfRule type=\"iconSet\" priority=\"{priority}\"{stop}>{b}</cfRule>")

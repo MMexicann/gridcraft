@@ -219,6 +219,10 @@ pub enum CfRule {
     IconSet {
         set: String,
         thresholds: Vec<CfValueKind>,
+        /// Strict `>` comparisons, aligned with `thresholds`; absent entries mean `>=`.
+        /// The first entry is unused when thresholds include the lower bound.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        greater_than: Vec<bool>,
         reverse: bool,
         show_value: bool,
     },

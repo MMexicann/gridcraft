@@ -156,6 +156,7 @@ fn sample() -> Workbook {
         CfRule::IconSet {
             set: "3Arrows".into(),
             thresholds: vec![CfValueKind::Percent(0.0), CfValueKind::Percent(33.0), CfValueKind::Percent(67.0)],
+            greater_than: vec![],
             reverse: true,
             show_value: false,
         },
@@ -827,7 +828,7 @@ fn icon_sets_always_write_one_cfvo_per_icon() {
     {
         s.cond_formats.push(CondFormat {
             ranges: vec![rr(&format!("A{}", i + 1))],
-            rule: CfRule::IconSet { set: set.into(), thresholds, reverse: false, show_value: true },
+            rule: CfRule::IconSet { set: set.into(), thresholds, greater_than: vec![], reverse: false, show_value: true },
             priority: i as u32 + 1,
             stop_if_true: false,
         });

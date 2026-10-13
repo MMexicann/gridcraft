@@ -3029,6 +3029,7 @@ fn icon_set_thresholds_from_files_pick_the_icon() {
         rule: CfRule::IconSet {
             set: "3Arrows".into(),
             thresholds: vec![CfValueKind::Percent(0.0), CfValueKind::Number(10.0), CfValueKind::Number(25.0)],
+            greater_than: vec![],
             reverse: false,
             show_value: true,
         },
