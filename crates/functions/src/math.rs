@@ -510,7 +510,7 @@ fn integer_args(a: &[Arg]) -> R<Vec<u64>> {
     v.iter()
         .map(|x| {
             let t = x.trunc();
-            if !(0.0..9.007_199_254_740_992e15).contains(&t) { Err(CellError::Num) } else { Ok(t as u64) }
+            if !(0.0..9.007_199_254_740_992e15).contains(x) { Err(CellError::Num) } else { Ok(t as u64) }
         })
         .collect()
 }
@@ -1511,6 +1511,20 @@ mod tests {
         close(ev2("LCM", 5.0, 0.0), 0.0);
         close(ev("MULTINOMIAL", vec![n(2.0), n(3.0), n(4.0)]), 1260.0);
         is_err(ev("MULTINOMIAL", vec![n(-1.0), n(2.0)]), Num);
+    }
+
+    #[test]
+    fn gcd_and_lcm_reject_negative_fractions_before_truncation() {
+        for name in ["GCD", "LCM"] {
+            for x in [-0.1, -0.5, -0.999] {
+                is_err(ev2(name, x, 2.0), Num);
+                is_err(ev(name, vec![rf(row(&[2.0, x]))]), Num);
+                // A zero elsewhere must not hide an invalid negative argument.
+                is_err(ev2(name, 0.0, x), Num);
+            }
+            close(ev2(name, -0.0, 2.0), if name == "GCD" { 2.0 } else { 0.0 });
+            close(ev2(name, 12.9, 18.9), if name == "GCD" { 6.0 } else { 36.0 });
+        }
     }
 
     #[test]
